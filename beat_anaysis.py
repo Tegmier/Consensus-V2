@@ -33,18 +33,22 @@ semiconductor = True
 if semiconductor:
     path = "data/semi"
     sector = "Semiconductor"
-    output_folder_path = "output/semi"
-    security_revenue_data = []
+    output_folder_path = "output/semi/"
+    security_revenue_data_list = []
     for equity in os.listdir(path):
-        equity_ame = equity[:-5]
+        equity_name = equity[:-5]
         data = pd.read_excel(os.path.join(path, equity), engine="openpyxl")
         data["Ann Date"] = pd.to_datetime(data["Ann Date"], errors='coerce')
         data["Next Ann Date"] = data["Ann Date"].shift(1)
         start_date_index = (data["Ann Date"] - pd.to_datetime(lower_date_boundry)).abs().idxmin()
         end_date_index = (data["Ann Date"] - pd.to_datetime(upper_date_boundry)).abs().idxmin()
         revenue_estimate = data[["Ann Date", "Per", "Per End", "Reported", "Estimate", "%Surp", "Next Ann Date"]].iloc[end_date_index:start_date_index,:].dropna().reset_index(drop=True)
-        security_revenue_data.append({"name":equity_ame, "revenue_data": revenue_estimate})
+        revenue_estimate["%Surp"] = revenue_estimate["%Surp"].replace("N.M.", "0")
+        revenue_estimate["%Surp"] = revenue_estimate["%Surp"].str.rstrip("%").astype(float) / 100
+        revenue_estimate["equity_name"] = equity_name
+        security_revenue_data_list.append(revenue_estimate)
 
+    security_revenue_data = pd.concat(security_revenue_data_list)
     print(f"start to calculate revenue data: {datetime.now()}")
     security_revenue_data = create_security_revenue_data_beat_analysis(security_revenue_data,
                                                                       surprise_beat_threshold,

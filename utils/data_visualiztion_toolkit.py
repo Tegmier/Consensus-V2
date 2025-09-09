@@ -264,23 +264,25 @@ def security_revenue_data_to_xlsx(security_revenue_data, region, sector, influen
 def beat_analysis_data_to_xlsx(security_revenue_data, sector, influence_period, output_folder_path, surprise_beat_threshold):
     situation_1, situation_2, situation_3, situation_4 = [], [], [], []
     overall_beat_list = [situation_1, situation_2, situation_3, situation_4]
-    situation_list = ["situation_1", "situation_2", "situation_3", "situation_4"]
-    for security in security_revenue_data:
-        security_name = security["name"]
+    situation_list = [0, 1, 2, 3]
+    
+    for idx, row in security_revenue_data.iterrows():
+        security_name = row["equity_name"]
         for situation, beatlist in zip(situation_list, overall_beat_list):
-            for each_beat_up in security[situation]:
-                ann_date = each_beat_up["Ann Date"]
-                next_ann_date = each_beat_up["Next Ann Date"]
-                surprise = each_beat_up["%Surp"]
+            if row["situation_flag"] == situation:
+                ann_date = row["ann_date"]
+                next_ann_date = row["next_ann_date"]
+                surprise = row["sup"]
+                beat_detail = row["beat_detail"]
                 
-                if situation == "situation_1":
-                    retrace_date = each_beat_up["Detail"]["retrace_date"]
-                    trough_date = each_beat_up["Detail"]["trough_date"]
-                    trough_loss = each_beat_up["Detail"]["trough_loss"]
-                    peak_date = each_beat_up["Detail"]["peak_date"]
-                    peak_gain = each_beat_up["Detail"]["peak_gain"]
-                    full_time_peak_date = each_beat_up["Detail"]["full_time_peak_date"]
-                    full_time_peak_gain = each_beat_up["Detail"]["full_time_peak_gain"]
+                if situation == 1:
+                    retrace_date = beat_detail["retrace_date"]
+                    trough_date = beat_detail["trough_date"]
+                    trough_loss = beat_detail["trough_loss"]
+                    peak_date = beat_detail["peak_date"]
+                    peak_gain = beat_detail["peak_gain"]
+                    full_time_peak_date = beat_detail["full_time_peak_date"]
+                    full_time_peak_gain = beat_detail["full_time_peak_gain"]
 
                 else:
                     retrace_date = ""
@@ -291,7 +293,7 @@ def beat_analysis_data_to_xlsx(security_revenue_data, sector, influence_period, 
                     full_time_peak_date = ""
                     full_time_peak_gain = ""
 
-                stock_price_data = each_beat_up["stock_price_data"]["Price"].to_numpy()
+                stock_price_data = row["stock_price"]["Price"].to_numpy()
                 stock_price_dict = {}
                 for i in range(stock_price_data.shape[0]):
                     stock_price_dict[f"day{i}"] = stock_price_data[i]
@@ -312,5 +314,5 @@ def beat_analysis_data_to_xlsx(security_revenue_data, sector, influence_period, 
     with pd.ExcelWriter(path, engine="openpyxl") as writer:
         for situation, beatlist in zip(situation_list, overall_beat_list):
             df = pd.DataFrame(beatlist)
-            df.to_excel(writer, sheet_name=situation, index=False)
+            df.to_excel(writer, sheet_name=f"situation {situation}", index=False)
     

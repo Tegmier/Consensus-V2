@@ -8,6 +8,7 @@ from utils.strategy import (beat_judgement,
                             calculate_retrace,
                             calculate_retrace_by_range)
 from API.api import get_stock_price_data_boolmberg_start_end,get_stock_price_data_boolmberg_start_end_period
+import sys
 
 def create_security_revenue_data(security_revenue_data, 
                                  surprise_beat_threshold, 
@@ -190,43 +191,62 @@ def retrace_list_preparation(stock_price_data, up_down_flag, influence_period):
         return {"retrace_date":retrace_date, "retrace_rate":retrace_rate, "recover_date":recover_date, "trend":trend}
     
 def create_security_revenue_data_beat_analysis(security_revenue_data, surprise_beat_threshold, influence_period, ):
-    for security in security_revenue_data:
-        security_name = security["name"]
-        security_data = security["revenue_data"]
-        security_data["%Surp"] = security_data["%Surp"].replace("N.M.", "0")
-        security_data["%Surp"] = security_data["%Surp"].str.rstrip("%").astype(float) / 100
-        surprise = security_data["%Surp"]
+    surprise = security_revenue_data["%Surp"]
+    beat_series_index = surprise[surprise > surprise_beat_threshold].index
+    security_revenue_data = security_revenue_data.loc[beat_series_index,:]
 
-        # Beat data preparation
-        situation_1, situation_2, situation_3, situation_4 = [], [], [], []
-        beat_series_index = surprise[surprise > surprise_beat_threshold].index
-        beat_data = security_data.loc[beat_series_index,:] 
-        for i in range(beat_data.shape[0]):
-            item = beat_data.iloc[i,:]
-            beat_ann_date = item["Ann Date"]
-            next_beat_ann_date = item["Next Ann Date"]
-            stock_price_data = get_stock_price_data_boolmberg_start_end(security_name, beat_ann_date, next_beat_ann_date)
-            situation_flag, beat_detail = situatuion_judgement(stock_price_data, influence_period)
-            dic_beat = {"Ann Date":beat_ann_date, "Per":item["Per"], "%Surp":item["%Surp"], "Next Ann Date":item["Next Ann Date"], "stock_price_data":stock_price_data, "Detail":beat_detail}
-            if situation_flag == 1:
-                # call a beat up
-                situation_1.append(dic_beat)
-            elif situation_flag == 2:
-                situation_2.append(dic_beat)
-            elif situation_flag == 3:
-                situation_3.append(dic_beat)
-            elif situation_flag == 4:
-                # call a miss down
-                situation_4.append(dic_beat)
-            else:
-                raise Exception("Situation judgement Error!")
-        security["situation_1"] = situation_1
-        security["situation_2"] = situation_2
-        security["situation_3"] = situation_3
-        security["situation_4"] = situation_4
-        
-    return security_revenue_data
+    equity_name_list = []
+    ann_date_list = []
+    next_ann_date_list = []
+    per_list = []
+    per_end_list = []
+    reported_list = []
+    estimate_list = []
+    sup_list = []
+    stock_price_list = []
+    beat_detail_list = []
+    situation_flag_list = []
 
+    for idx,row in security_revenue_data.iterrows():
+        equity_name = row["equity_name"]
+        beat_ann_date = row["Ann Date"]
+        next_beat_ann_date = row["Next Ann Date"]
+        per = row["Per"]
+        per_end = row["Per End"]
+        reported = row["Reported"]
+        estimate = row["Estimate"]
+        sup = row["%Surp"]
+        try:
+            stock_price_data = get_stock_price_data_boolmberg_start_end(equity_name, beat_ann_date, next_beat_ann_date)
+            if len(stock_price_data) <= 20:
+                raise ValueError("长度返回出错")
+        except ValueError as e:
+            print(f"equity_name: {equity_name}")
+            print(f"Ann date: {beat_ann_date}")
+            continue
+        situation_flag, beat_detail = situatuion_judgement(stock_price_data, influence_period)
+        equity_name_list.append(equity_name)
+        ann_date_list.append(beat_ann_date)
+        next_ann_date_list.append(next_beat_ann_date)
+        per_list.append(per)
+        per_end_list.append(per_end)
+        reported_list.append(reported)
+        estimate_list.append(estimate)
+        sup_list.append(sup)
+        stock_price_list.append(stock_price_data)
+        situation_flag_list.append(situation_flag)
+        beat_detail_list.append(beat_detail)
+    return pd.DataFrame({"equity_name":equity_name_list,
+                         "ann_date":ann_date_list,
+                         "next_ann_date":next_ann_date_list,
+                         "per":per_list,
+                         "per_end":per_end_list,
+                         "reported":reported_list,
+                         "estimate":estimate_list,
+                         "sup":sup_list,
+                         "stock_price":stock_price_list,
+                         "situation_flag":situation_flag_list,
+                         "beat_detail":beat_detail_list})
 
 def situatuion_judgement(stock_price_data, influence_period):
     full_price_series = stock_price_data["Price"].to_numpy()
