@@ -264,8 +264,8 @@ def security_revenue_data_to_xlsx(security_revenue_data, region, sector, influen
 def beat_analysis_data_to_xlsx(security_revenue_data, sector, influence_period, output_folder_path, surprise_beat_threshold):
     situation_1, situation_2, situation_3, situation_4 = [], [], [], []
     overall_beat_list = [situation_1, situation_2, situation_3, situation_4]
-    situation_list = [0, 1, 2, 3]
-    
+    situation_list = [1, 2, 3, 4]
+
     for idx, row in security_revenue_data.iterrows():
         security_name = row["equity_name"]
         for situation, beatlist in zip(situation_list, overall_beat_list):

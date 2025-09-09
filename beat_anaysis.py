@@ -48,7 +48,10 @@ if semiconductor:
         revenue_estimate["equity_name"] = equity_name
         security_revenue_data_list.append(revenue_estimate)
 
-    security_revenue_data = pd.concat(security_revenue_data_list)
+    security_revenue_data = pd.concat(security_revenue_data_list, ignore_index=True)
+    surprise = security_revenue_data["%Surp"]
+    beat_series_index = surprise[surprise > surprise_beat_threshold].index
+    security_revenue_data = security_revenue_data.loc[beat_series_index,:]
     print(f"start to calculate revenue data: {datetime.now()}")
     security_revenue_data = create_security_revenue_data_beat_analysis(security_revenue_data,
                                                                       surprise_beat_threshold,

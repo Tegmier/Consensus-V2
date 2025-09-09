@@ -196,6 +196,7 @@ def create_security_revenue_data_beat_analysis(security_revenue_data, surprise_b
     security_revenue_data = security_revenue_data.loc[beat_series_index,:]
 
     equity_name_list = []
+
     ann_date_list = []
     next_ann_date_list = []
     per_list = []
@@ -236,7 +237,8 @@ def create_security_revenue_data_beat_analysis(security_revenue_data, surprise_b
         stock_price_list.append(stock_price_data)
         situation_flag_list.append(situation_flag)
         beat_detail_list.append(beat_detail)
-    return pd.DataFrame({"equity_name":equity_name_list,
+
+    result=pd.DataFrame({"equity_name":equity_name_list,
                          "ann_date":ann_date_list,
                          "next_ann_date":next_ann_date_list,
                          "per":per_list,
@@ -247,6 +249,8 @@ def create_security_revenue_data_beat_analysis(security_revenue_data, surprise_b
                          "stock_price":stock_price_list,
                          "situation_flag":situation_flag_list,
                          "beat_detail":beat_detail_list})
+    result = result.drop_duplicates(subset=["equity_name", "ann_date"])
+    return result
 
 def situatuion_judgement(stock_price_data, influence_period):
     full_price_series = stock_price_data["Price"].to_numpy()
